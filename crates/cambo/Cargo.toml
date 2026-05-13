@@ -5,4 +5,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+miette = { version = "7.6" }
+pollster = { version = "0.4" }
 portable-pty = { version = "0.9" }
+vello = { version = "0.8" }
+wgpu = { version = "28" }
+winit = { version = "0.30" }

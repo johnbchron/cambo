@@ -2,11 +2,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    crane.url = "github:ipetkov/crane";
     devshell.url = "github:numtide/devshell";
   };
 
-  outputs = { nixpkgs, rust-overlay, devshell, flake-utils, crane, ... }: 
+  outputs = { nixpkgs, rust-overlay, devshell, flake-utils, ... }: 
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
@@ -15,95 +14,33 @@
           devshell.overlays.default
         ];
       };
-      lib = pkgs.lib;
 
       toolchain_fn = p: p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
         extensions = [ "rust-src" "rust-analyzer" ];
       });
-      minimal_toolchain_fn = p: p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal);
 
-      craneLib = (crane.mkLib pkgs).overrideToolchain minimal_toolchain_fn;
+      packages = (with pkgs; [
+        pkg-config clang mold
 
-      unfilteredRoot = ./.;
-      src = lib.fileset.toSource {
-        root = unfilteredRoot;
-        fileset = lib.fileset.unions [
-          (craneLib.fileset.commonCargoSources unfilteredRoot)
-          ./crates/blog/src/test_markup.html
-          (lib.fileset.maybeMissing ./posts)
-          (lib.fileset.maybeMissing ./public)
-          (lib.fileset.maybeMissing ./style)
-        ];
-      };
+        alsa-lib udev
 
-      server-args = {
-        inherit src;
-        inherit (craneLib.crateNameFromCargoToml { inherit src; }) version;
-        pname = "blog";
+        libxkbcommon wayland
+        # xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr
 
-        strictDeps = true;
-        doCheck = false;
-      };
+        vulkan-headers vulkan-loader
+        vulkan-tools vulkan-tools-lunarg
+        vulkan-extension-layer
+        # vulkan-validation-layers
 
-      # transform the css with tailwind
-      css = pkgs.stdenv.mkDerivation {
-        pname = "grid-css";
-        version = "0.1.0";
-        inherit src;
-
-        buildPhase = ''
-          ${pkgs.tailwindcss_4}/bin/tailwindcss \
-            --input style/main.css \
-            --output $out \
-            --minify
-        '';
-      };
-      
-      server = craneLib.buildPackage (server-args // {
-        cargoArtifacts = craneLib.buildDepsOnly server-args;
-
-        nativeBuildInputs = (server-args.nativeBuildInputs or [ ]) ++ (with pkgs; [
-          makeWrapper
-        ]);
-
-        doNotPostBuildInstallCargoBinaries = true;
-        installPhaseCommand = ''
-          mkdir -p $out/bin
-          cp target/release/${server-args.pname} $out/bin/${server-args.pname}
-          cp ${css} $out/bin/styles.css
-          cp -r public $out/bin/public
-          cp -r posts $out/bin/posts
-
-          wrapProgram $out/bin/${server-args.pname} \
-            --set-default STATIC_ASSET_DIR $out/bin/public \
-            --set-default POSTS_DIR $out/bin/posts \
-            --set-default STYLESHEET_PATH $out/bin/styles.css \
-        '';
-      });
-
-      server-container = pkgs.dockerTools.buildLayeredImage {
-        name = server-args.pname;
-        tag = "latest";
-        contents = [ server ];
-        config = {
-          Entrypoint = [ server-args.pname ];
-          WorkingDir = "${server}/bin";
-        };
-      };
+        fontconfig
+      ]) ++ [ (toolchain_fn pkgs) ];
     in {
-      devShells.default = pkgs.devshell.mkShell {
-        packages = [
-          (toolchain_fn pkgs)
-          pkgs.gcc
-          pkgs.tailwindcss_4
-          pkgs.bacon
-          pkgs.flyctl
-        ];
+      devShell = pkgs.devshell.mkShell {
+        inherit packages;
         motd = "\n  Welcome to the {2}$(basename $PRJ_ROOT){reset} shell.\n";
+        env = [
+          { name = "LD_LIBRARY_PATH"; value = pkgs.lib.makeLibraryPath packages; }
+        ];
       };
-      packages = {
-        inherit server server-container;
-        default = server;
-      };
-    });
+  });
 }
