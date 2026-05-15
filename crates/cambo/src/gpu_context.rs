@@ -4,10 +4,10 @@ use wgpu::{
 };
 
 pub struct GpuContext {
-  pub instance: Instance,
-  pub device:   Device,
-  pub queue:    Queue,
   pub renderer: vello::Renderer,
+  pub queue:    Queue,
+  pub device:   Device,
+  pub instance: Instance,
 }
 
 impl GpuContext {

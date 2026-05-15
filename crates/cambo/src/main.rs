@@ -5,14 +5,13 @@ use tracing_subscriber::{
 };
 use winit::event_loop::EventLoop;
 
-use self::{gpu_context::GpuContext, window_app::App};
+use self::{gpu_context::GpuContext, window_app::WindowApp};
 
 mod gpu_context;
 mod window_app;
 mod window_state;
 
 fn main() -> miette::Result<()> {
-  let gpu = GpuContext::new()?;
   tracing_subscriber::registry()
     .with(tracing_subscriber::fmt::layer())
     .with(
@@ -23,10 +22,11 @@ fn main() -> miette::Result<()> {
     .try_init()
     .into_diagnostic()?;
 
+  let gpu = GpuContext::new().context("failed to build gpu context")?;
   let event_loop = EventLoop::new()
     .into_diagnostic()
     .context("failed to build winit event loop")?;
-  let mut app = App { gpu, window: None };
+  let mut app = WindowApp { window: None, gpu };
   event_loop
     .run_app(&mut app)
     .into_diagnostic()

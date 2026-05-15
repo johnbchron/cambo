@@ -21,12 +21,26 @@ use crate::{
   window_state::{InputState, WindowState},
 };
 
-pub struct App {
-  pub gpu:    GpuContext,
+pub struct WindowApp {
   pub window: Option<WindowState>,
+  pub gpu:    GpuContext,
 }
 
-impl ApplicationHandler for App {
+impl WindowApp {
+  fn prepare_to_drop(&mut self) {
+    let _ = self.gpu.device.poll(wgpu::PollType::Wait {
+      submission_index: None,
+      timeout:          None,
+    });
+    self.window = None;
+  }
+}
+
+impl Drop for WindowApp {
+  fn drop(&mut self) { self.prepare_to_drop(); }
+}
+
+impl ApplicationHandler for WindowApp {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
     if self.window.is_some() {
       return;
@@ -37,11 +51,12 @@ impl ApplicationHandler for App {
   }
 
   fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
-    // Only the window and surface are dropped; GPU context survives.
-    self.window = None;
+    self.prepare_to_drop()
   }
 
-  fn exiting(&mut self, _event_loop: &ActiveEventLoop) { self.window = None; }
+  fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+    self.prepare_to_drop()
+  }
 
   fn window_event(
     &mut self,
@@ -54,7 +69,6 @@ impl ApplicationHandler for App {
     };
 
     match event {
-      // ── lifecycle / surface ─────────────────────────────
       WindowEvent::CloseRequested => event_loop.exit(),
 
       WindowEvent::Resized(new_size) => {
@@ -78,7 +92,6 @@ impl ApplicationHandler for App {
         ws.focused = focused;
       }
 
-      // ── keyboard ────────────────────────────────────────
       WindowEvent::KeyboardInput {
         event:
           KeyEvent {
@@ -94,7 +107,6 @@ impl ApplicationHandler for App {
         }
       }
 
-      // ── mouse / pointer ─────────────────────────────────
       WindowEvent::CursorMoved {
         position: PhysicalPosition { x, y },
         ..
@@ -121,7 +133,6 @@ impl ApplicationHandler for App {
         ws.request_redraw();
       }
 
-      // ── drawing ─────────────────────────────────────────
       WindowEvent::RedrawRequested => {
         if ws.occluded {
           return;
