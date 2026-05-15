@@ -1,5 +1,7 @@
 use miette::{Context, IntoDiagnostic};
-use wgpu::{Device, DeviceDescriptor, Instance, Queue, RequestAdapterOptions};
+use wgpu::{
+  Backends, Device, DeviceDescriptor, Instance, Queue, RequestAdapterOptions,
+};
 
 pub struct GpuContext {
   pub instance: Instance,
@@ -10,8 +12,12 @@ pub struct GpuContext {
 
 impl GpuContext {
   pub fn new() -> miette::Result<Self> {
-    let instance =
-      Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+    // no support for GL
+    let instance_descriptor = wgpu::InstanceDescriptor {
+      backends: Backends::PRIMARY,
+      ..wgpu::InstanceDescriptor::from_env_or_default()
+    };
+    let instance = Instance::new(&instance_descriptor);
 
     let (device, queue) = pollster::block_on(async {
       let adapter = instance
