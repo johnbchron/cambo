@@ -1,3 +1,7 @@
+mod gpu_context;
+mod window_app;
+mod window_state;
+
 use miette::{Context, IntoDiagnostic};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -6,10 +10,6 @@ use tracing_subscriber::{
 use winit::event_loop::EventLoop;
 
 use self::{gpu_context::GpuContext, window_app::WindowApp};
-
-mod gpu_context;
-mod window_app;
-mod window_state;
 
 fn main() -> miette::Result<()> {
   tracing_subscriber::registry()
