@@ -1,13 +1,11 @@
-use miette::{Context, IntoDiagnostic};
 use wgpu::{
   Backends, Device, DeviceDescriptor, Instance, Queue, RequestAdapterOptions,
 };
 
 pub struct GpuContext {
-  pub renderer: vello::Renderer,
-  pub queue:    Queue,
-  pub device:   Device,
-  pub instance: Instance,
+  queue:    Queue,
+  device:   Device,
+  instance: Instance,
 }
 
 impl GpuContext {
@@ -31,20 +29,16 @@ impl GpuContext {
       (device, queue)
     });
 
-    let renderer = vello::Renderer::new(&device, vello::RendererOptions {
-      use_cpu:              false,
-      antialiasing_support: vello::AaSupport::area_only(),
-      num_init_threads:     None,
-      pipeline_cache:       None,
-    })
-    .into_diagnostic()
-    .context("failed to create vello renderer")?;
-
     Ok(Self {
       instance,
       device,
       queue,
-      renderer,
     })
   }
+
+  pub fn queue(&self) -> &Queue { &self.queue }
+
+  pub fn device(&self) -> &Device { &self.device }
+
+  pub fn instance(&self) -> &Instance { &self.instance }
 }
