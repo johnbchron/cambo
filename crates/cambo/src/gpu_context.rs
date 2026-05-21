@@ -2,6 +2,7 @@ use wgpu::{
   Backends, Device, DeviceDescriptor, Instance, Queue, RequestAdapterOptions,
 };
 
+#[derive(Debug)]
 pub struct GpuContext {
   queue:    Queue,
   device:   Device,

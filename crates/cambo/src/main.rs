@@ -1,8 +1,11 @@
 mod app;
+mod draw;
+mod event_sender;
 mod gpu_context;
-mod render_context;
-mod window_app;
-mod window_state;
+mod renderer;
+mod surface_state;
+mod window_handle;
+mod winit_app;
 
 use miette::{Context, IntoDiagnostic};
 use tracing::level_filters::LevelFilter;

@@ -1,27 +1,21 @@
 use std::sync::Arc;
 
 use wgpu::{SurfaceConfiguration, TextureUsages};
-use winit::{dpi::LogicalSize, event_loop::ActiveEventLoop, window::Window};
+use winit::window::Window;
 
 use crate::gpu_context::GpuContext;
 
 #[derive(Debug)]
-pub struct WindowState {
-  pub window:         Arc<Window>,
+pub struct SurfaceState {
   pub surface:        wgpu::Surface<'static>,
   pub surface_config: SurfaceConfiguration,
 }
 
-impl WindowState {
-  pub fn new(gpu: &GpuContext, event_loop: &ActiveEventLoop) -> Self {
-    let attrs = Window::default_attributes()
-      .with_title("cambo")
-      .with_inner_size(LogicalSize::new(800, 600));
-    let window = Arc::new(event_loop.create_window(attrs).unwrap());
-
-    let surface = gpu.instance().create_surface(window.clone()).unwrap();
-
+impl SurfaceState {
+  pub fn new(gpu: &GpuContext, window: Arc<Window>) -> Self {
     let size = window.inner_size();
+    let surface = gpu.instance().create_surface(window).unwrap();
+
     let surface_config = SurfaceConfiguration {
       usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
       format: wgpu::TextureFormat::Rgba8Unorm,
@@ -36,13 +30,10 @@ impl WindowState {
     surface.configure(gpu.device(), &surface_config);
 
     Self {
-      window,
       surface,
       surface_config,
     }
   }
-
-  pub fn request_redraw(&self) { self.window.request_redraw(); }
 
   pub fn resize_surface(
     &mut self,
