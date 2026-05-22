@@ -186,23 +186,27 @@ impl App {
   }
 
   fn affect_resize(&self, new_size: PhysicalSize<u32>) {
-    let Some(renderer) = self.get_renderer() else {
+    let Some(window_handle) = self.get_window_handle() else {
       tracing::warn!("attempted to affect a resize without a window present");
       return;
     };
 
-    renderer.send_resize(new_size);
+    window_handle.renderer().send_resize(new_size);
+    window_handle.request_redraw();
   }
 
   fn affect_scale_factor_change(&self, new_scale_factor: f64) {
-    let Some(renderer) = self.get_renderer() else {
+    let Some(window_handle) = self.get_window_handle() else {
       tracing::warn!(
         "attempted to affect a scale factor change without a window present"
       );
       return;
     };
 
-    renderer.send_scale_factor_change(new_scale_factor);
+    window_handle
+      .renderer()
+      .send_scale_factor_change(new_scale_factor);
+    window_handle.request_redraw();
   }
 
   fn get_window_handle(&self) -> Option<&WindowHandle> {
