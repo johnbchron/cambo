@@ -1,6 +1,10 @@
-use std::sync::{Arc, mpsc};
+use std::{
+  sync::{Arc, mpsc},
+  time::Instant,
+};
 
 use miette::Context;
+use tracing::debug;
 use winit::{event_loop::EventLoopProxy, window::Window};
 
 use crate::{
@@ -54,9 +58,14 @@ impl Executor {
             window.id = ?window.id(),
             "spawning renderer for window"
           );
+          let now = Instant::now();
           let result =
             Renderer::launch(gpu, window.clone(), self.event_tx.clone())
               .context("failed to launch renderer");
+          debug!(
+            "launched renderer in {:.2}ms",
+            now.elapsed().as_millis_f32()
+          );
 
           match result {
             Ok(handle) => {

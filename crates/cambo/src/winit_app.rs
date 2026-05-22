@@ -1,5 +1,6 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
+use tracing::debug;
 use winit::{
   application::ApplicationHandler,
   dpi::LogicalSize,
@@ -48,10 +49,12 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   ) {
     match command {
       crate::executor::EventLoopCommand::BuildWindow => {
+        let now = Instant::now();
         let attrs = Window::default_attributes()
           .with_title("cambo")
           .with_inner_size(LogicalSize::new(800, 600));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
+        debug!("built window in {:.02}ms", now.elapsed().as_millis_f32());
 
         self
           .event_tx
