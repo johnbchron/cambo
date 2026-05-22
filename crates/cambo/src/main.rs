@@ -1,3 +1,5 @@
+#![feature(duration_millis_float)]
+
 mod app;
 mod draw;
 mod event;

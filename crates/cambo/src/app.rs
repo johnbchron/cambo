@@ -1,6 +1,10 @@
-use std::sync::{Arc, mpsc};
+use std::{
+  sync::{Arc, mpsc},
+  time::{Duration, Instant},
+};
 
 use miette::{Context, IntoDiagnostic};
+use tracing::{debug, info, warn};
 use winit::{
   dpi::PhysicalSize,
   event::WindowEvent,
@@ -81,44 +85,51 @@ impl App {
 
   pub fn run(&mut self) -> miette::Result<()> {
     while let Ok(event) = self.event_rx.recv() {
-      tracing::debug!(?event, "received event");
+      let start = Instant::now();
       match event {
+        // mainline event loop control flow
         Event::Windowing(WindowingEvent::EventLoop(
           WinitEventLoopEvent::Resumed,
         )) => {
+          debug!("received resumed event => building window");
           self
             .command(Command::EventLoopCommand(EventLoopCommand::BuildWindow));
         }
         Event::Windowing(WindowingEvent::EventLoop(
           WinitEventLoopEvent::Suspended,
         )) => {
+          debug!("received suspended event => destroying window");
           self.drop_window();
         }
         Event::Windowing(WindowingEvent::EventLoop(
           WinitEventLoopEvent::Exiting,
         )) => {
-          tracing::info!("winit event loop is exiting => ending app loop");
+          info!("winit event loop is exiting => ending app loop");
           break;
         }
 
+        // resized
         Event::Windowing(WindowingEvent::Window(
           _,
           WindowEvent::Resized(new_size),
         )) => {
           self.affect_resize(new_size);
         }
+        // scale factor changed
         Event::Windowing(WindowingEvent::Window(
           _,
           WindowEvent::ScaleFactorChanged { scale_factor, .. },
         )) => {
           self.affect_scale_factor_change(scale_factor);
         }
+        // redraw requested
         Event::Windowing(WindowingEvent::Window(
           _,
           WindowEvent::RedrawRequested,
         )) => {
           self.initiate_frame();
         }
+        // close requested
         Event::Windowing(WindowingEvent::Window(
           _,
           WindowEvent::CloseRequested,
@@ -127,14 +138,19 @@ impl App {
           return Ok(());
         }
 
-        Event::Windowing(WindowingEvent::Window(w_id, _window_event)) => {
-          tracing::debug!(window.id = ?w_id, "ignoring unimplemented window event");
+        Event::Windowing(WindowingEvent::Window(_, _window_event)) => {
+          // tracing::debug!(window.id = ?w_id, "ignoring unimplemented window
+          // event");
           if let Some(wh) = self.get_window_handle() {
             wh.request_redraw();
           }
         }
-        Event::Windowing(WindowingEvent::Device(d_id, _device_event)) => {
-          tracing::debug!(device.id = ?d_id, "ignoring unimplemented device event");
+        Event::Windowing(WindowingEvent::Device(_, _device_event)) => {
+          // tracing::debug!(device.id = ?d_id, "ignoring unimplemented device
+          // event");
+          if let Some(wh) = self.get_window_handle() {
+            wh.request_redraw();
+          }
         }
 
         Event::Windowing(WindowingEvent::WindowBuilt(window)) => {
@@ -151,6 +167,14 @@ impl App {
           self.shut_down_app();
           return Err(report);
         }
+      }
+
+      let elapsed = start.elapsed();
+      if elapsed > Duration::from_micros(20) {
+        warn!(
+          "slow loop: event loop cycle took {:.03}ms (> 0.020 micros)",
+          start.elapsed().as_millis_f32()
+        );
       }
     }
 
