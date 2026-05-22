@@ -187,6 +187,7 @@ impl App {
   fn drop_window(&mut self) { self.state.window = None; }
 
   fn shut_down_app(&mut self) {
+    tracing::info!("shutting down app");
     self.drop_window();
     self.command(Command::EventLoopCommand(EventLoopCommand::ExitEventLoop));
   }
