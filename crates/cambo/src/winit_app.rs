@@ -55,6 +55,9 @@ impl ApplicationHandler<EventLoopCommand> for WinitApp {
 
         self.event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
       }
+      EventLoopCommand::ExitEventLoop => {
+        event_loop.exit();
+      }
     }
   }
 
@@ -74,7 +77,8 @@ impl ApplicationHandler<EventLoopCommand> for WinitApp {
   }
 
   fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-    self.event(Event::Windowing(WindowingEvent::EventLoop(
+    // app loop may already have exited. avoids a potential panic.
+    let _ = self.try_event(Event::Windowing(WindowingEvent::EventLoop(
       WinitEventLoopEvent::Exiting,
     )));
   }

@@ -115,7 +115,7 @@ impl App {
         Event::Windowing(WindowingEvent::EventLoop(
           WinitEventLoopEvent::Suspended,
         )) => {
-          self.drop_window_handle();
+          self.drop_window();
         }
         Event::Windowing(WindowingEvent::EventLoop(
           WinitEventLoopEvent::Exiting,
@@ -142,6 +142,13 @@ impl App {
         )) => {
           self.initiate_frame();
         }
+        Event::Windowing(WindowingEvent::Window(
+          _,
+          WindowEvent::CloseRequested,
+        )) => {
+          self.shut_down_app();
+          return Ok(());
+        }
 
         Event::Windowing(WindowingEvent::Window(w_id, _window_event)) => {
           tracing::debug!(window.id = ?w_id, "ignoring unimplemented window event");
@@ -159,8 +166,14 @@ impl App {
         Event::RendererSpawned(window_handle) => {
           self.accept_window_handle(window_handle);
         }
-        Event::ExitRequested => todo!(),
-        Event::CriticalFailure(report) => todo!(),
+        Event::ExitRequested => {
+          self.shut_down_app();
+          return Ok(());
+        }
+        Event::CriticalFailure(report) => {
+          self.shut_down_app();
+          return Err(report);
+        }
       }
     }
 
@@ -172,7 +185,12 @@ impl App {
     self.state.window = Some(window_handle);
   }
 
-  fn drop_window_handle(&mut self) { self.state.window = None; }
+  fn drop_window(&mut self) { self.state.window = None; }
+
+  fn shut_down_app(&mut self) {
+    self.drop_window();
+    self.command(Command::EventLoopCommand(EventLoopCommand::ExitEventLoop));
+  }
 
   fn initiate_frame(&self) {
     let frame_input = FrameInput {};
@@ -243,6 +261,7 @@ pub enum Command {
 #[derive(Debug)]
 pub enum EventLoopCommand {
   BuildWindow,
+  ExitEventLoop,
 }
 
 pub struct Executor {

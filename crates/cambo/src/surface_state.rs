@@ -43,7 +43,7 @@ impl SurfaceState {
   ) {
     self.surface_config.width = width.max(1);
     self.surface_config.height = height.max(1);
-    self.surface.configure(device, &self.surface_config);
+    self.reconfigure_surface(device);
   }
 
   pub fn reconfigure_surface(&self, device: &wgpu::Device) {
