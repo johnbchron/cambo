@@ -55,11 +55,7 @@ impl App {
       .into_diagnostic()
       .context("failed to launch app thread")?;
 
-    let executor = Executor {
-      command_rx,
-      winit_tx,
-      event_tx,
-    };
+    let executor = Executor::new(command_rx, event_tx, winit_tx);
 
     std::thread::Builder::new()
       .name("executor".into())

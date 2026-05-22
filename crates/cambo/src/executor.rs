@@ -21,9 +21,9 @@ pub enum EventLoopCommand {
 }
 
 pub struct Executor {
-  pub(crate) command_rx: mpsc::Receiver<Command>,
-  pub(crate) event_tx:   mpsc::Sender<Event>,
-  pub(crate) winit_tx:   EventLoopProxy<EventLoopCommand>,
+  command_rx: mpsc::Receiver<Command>,
+  event_tx:   mpsc::Sender<Event>,
+  winit_tx:   EventLoopProxy<EventLoopCommand>,
 }
 
 impl EventSender for Executor {
@@ -31,6 +31,18 @@ impl EventSender for Executor {
 }
 
 impl Executor {
+  pub fn new(
+    command_rx: mpsc::Receiver<Command>,
+    event_tx: mpsc::Sender<Event>,
+    winit_tx: EventLoopProxy<EventLoopCommand>,
+  ) -> Self {
+    Self {
+      command_rx,
+      event_tx,
+      winit_tx,
+    }
+  }
+
   pub fn run(&mut self) -> miette::Result<()> {
     while let Ok(command) = self.command_rx.recv() {
       match command {
