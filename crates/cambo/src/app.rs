@@ -14,6 +14,7 @@ use winit::{
 use crate::{
   draw::FrameInput,
   event::{Event, WindowingEvent, WinitEventLoopEvent},
+  event_sender::EventSender,
   executor::{Command, EventLoopCommand, Executor},
   gpu_context::GpuContext,
   renderer::RendererHandle,
@@ -31,6 +32,7 @@ impl App {
   pub fn launch(state: AppState) -> miette::Result<()> {
     let (event_tx, event_rx) = mpsc::channel();
     let (command_tx, command_rx) = mpsc::channel();
+    let event_tx = EventSender::new(event_tx);
 
     let mut winit_app = WinitApp::new(event_tx.clone());
     let window_event_loop = EventLoop::<EventLoopCommand>::with_user_event()

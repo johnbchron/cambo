@@ -13,7 +13,7 @@ use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
   draw::{FrameInput, FullFrameInput},
-  event::Event,
+  event_sender::EventSender,
   gpu_context::GpuContext,
   surface_state::SurfaceState,
 };
@@ -25,7 +25,7 @@ pub struct Renderer {
   current_scale_factor: f64,
   current_frame_count:  u64,
   renderer_command_rx:  mpsc::Receiver<RendererCommand>,
-  event_tx:             mpsc::Sender<Event>,
+  event_tx:             EventSender,
 }
 
 pub enum RendererCommand {
@@ -38,7 +38,7 @@ impl Renderer {
   pub fn launch(
     gpu: Arc<GpuContext>,
     window: Arc<Window>,
-    event_tx: mpsc::Sender<Event>,
+    event_tx: EventSender,
   ) -> miette::Result<RendererHandle> {
     let (renderer_command_tx, renderer_command_rx) = mpsc::channel();
 

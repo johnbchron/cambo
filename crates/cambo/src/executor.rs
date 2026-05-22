@@ -22,18 +22,14 @@ pub enum EventLoopCommand {
 
 pub struct Executor {
   command_rx: mpsc::Receiver<Command>,
-  event_tx:   mpsc::Sender<Event>,
+  event_tx:   EventSender,
   winit_tx:   EventLoopProxy<EventLoopCommand>,
-}
-
-impl EventSender for Executor {
-  fn event_sender_handle(&self) -> &mpsc::Sender<Event> { &self.event_tx }
 }
 
 impl Executor {
   pub fn new(
     command_rx: mpsc::Receiver<Command>,
-    event_tx: mpsc::Sender<Event>,
+    event_tx: EventSender,
     winit_tx: EventLoopProxy<EventLoopCommand>,
   ) -> Self {
     Self {
@@ -64,12 +60,14 @@ impl Executor {
 
           match result {
             Ok(handle) => {
-              self.event(Event::RendererSpawned(WindowHandle::new(
-                window, handle,
-              )));
+              self
+                .event_tx
+                .event(Event::RendererSpawned(WindowHandle::new(
+                  window, handle,
+                )));
             }
             Err(error) => {
-              self.event(Event::CriticalFailure(error));
+              self.event_tx.event(Event::CriticalFailure(error));
             }
           }
         }

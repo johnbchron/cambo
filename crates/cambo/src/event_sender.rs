@@ -2,18 +2,22 @@ use std::sync::mpsc::{self, SendError};
 
 use crate::event::Event;
 
-/// Convenience trait for items that can send events.
-pub trait EventSender {
-  fn event_sender_handle(&self) -> &mpsc::Sender<Event>;
+#[derive(Clone, Debug)]
+pub struct EventSender {
+  event_tx: mpsc::Sender<Event>,
+}
 
-  fn event(&self, event: Event) {
+impl EventSender {
+  pub fn new(event_tx: mpsc::Sender<Event>) -> Self { Self { event_tx } }
+
+  pub fn event(&self, event: Event) {
     self
-      .event_sender_handle()
+      .event_tx
       .send(event)
       .expect("failed to send event: app thread has exited");
   }
 
-  fn try_event(&self, event: Event) -> Result<(), SendError<Event>> {
-    self.event_sender_handle().send(event)
+  pub fn try_event(&self, event: Event) -> Result<(), SendError<Event>> {
+    self.event_tx.send(event)
   }
 }

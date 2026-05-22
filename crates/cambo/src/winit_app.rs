@@ -1,4 +1,4 @@
-use std::sync::{Arc, mpsc};
+use std::sync::Arc;
 
 use winit::{
   application::ApplicationHandler,
@@ -14,22 +14,20 @@ use crate::{
 };
 
 pub struct WinitApp {
-  event_tx: mpsc::Sender<Event>,
+  event_tx: EventSender,
 }
 
 impl WinitApp {
-  pub fn new(event_tx: mpsc::Sender<Event>) -> Self { Self { event_tx } }
-}
-
-impl EventSender for WinitApp {
-  fn event_sender_handle(&self) -> &mpsc::Sender<Event> { &self.event_tx }
+  pub fn new(event_tx: EventSender) -> Self { Self { event_tx } }
 }
 
 impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
-    self.event(Event::Windowing(WindowingEvent::EventLoop(
-      WinitEventLoopEvent::Resumed,
-    )));
+    self
+      .event_tx
+      .event(Event::Windowing(WindowingEvent::EventLoop(
+        WinitEventLoopEvent::Resumed,
+      )));
   }
 
   fn window_event(
@@ -38,7 +36,9 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
     window_id: WindowId,
     event: winit::event::WindowEvent,
   ) {
-    self.event(Event::Windowing(WindowingEvent::Window(window_id, event)));
+    self
+      .event_tx
+      .event(Event::Windowing(WindowingEvent::Window(window_id, event)));
   }
 
   fn user_event(
@@ -53,7 +53,9 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
           .with_inner_size(LogicalSize::new(800, 600));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
 
-        self.event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
+        self
+          .event_tx
+          .event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
       }
       crate::executor::EventLoopCommand::ExitEventLoop => {
         event_loop.exit();
@@ -67,19 +69,26 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
     device_id: DeviceId,
     event: winit::event::DeviceEvent,
   ) {
-    self.event(Event::Windowing(WindowingEvent::Device(device_id, event)));
+    self
+      .event_tx
+      .event(Event::Windowing(WindowingEvent::Device(device_id, event)));
   }
 
   fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
-    self.event(Event::Windowing(WindowingEvent::EventLoop(
-      WinitEventLoopEvent::Suspended,
-    )));
+    self
+      .event_tx
+      .event(Event::Windowing(WindowingEvent::EventLoop(
+        WinitEventLoopEvent::Suspended,
+      )));
   }
 
   fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
     // app loop may already have exited. avoids a potential panic.
-    let _ = self.try_event(Event::Windowing(WindowingEvent::EventLoop(
-      WinitEventLoopEvent::Exiting,
-    )));
+    let _ =
+      self
+        .event_tx
+        .try_event(Event::Windowing(WindowingEvent::EventLoop(
+          WinitEventLoopEvent::Exiting,
+        )));
   }
 }
