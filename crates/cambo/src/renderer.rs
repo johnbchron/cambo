@@ -12,8 +12,8 @@ use wgpu::{
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-  app::Event,
   draw::{FrameInput, FullFrameInput},
+  event::Event,
   gpu_context::GpuContext,
   surface_state::SurfaceState,
 };

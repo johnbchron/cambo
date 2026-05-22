@@ -3,42 +3,19 @@ use std::sync::{Arc, mpsc};
 use miette::{Context, IntoDiagnostic};
 use winit::{
   dpi::PhysicalSize,
-  event::{DeviceEvent, DeviceId, WindowEvent},
-  event_loop::{ControlFlow, EventLoop, EventLoopProxy},
-  window::{Window, WindowId},
+  event::WindowEvent,
+  event_loop::{ControlFlow, EventLoop},
 };
 
 use crate::{
   draw::FrameInput,
-  event_sender::EventSender,
+  event::{Event, WindowingEvent, WinitEventLoopEvent},
+  executor::{Command, EventLoopCommand, Executor},
   gpu_context::GpuContext,
-  renderer::{Renderer, RendererHandle},
+  renderer::RendererHandle,
   window_handle::WindowHandle,
   winit_app::WinitApp,
 };
-
-#[derive(Debug)]
-pub enum WindowingEvent {
-  EventLoop(WinitEventLoopEvent),
-  Window(WindowId, WindowEvent),
-  Device(DeviceId, DeviceEvent),
-  WindowBuilt(Arc<Window>),
-}
-
-#[derive(Debug)]
-pub enum WinitEventLoopEvent {
-  Resumed,
-  Suspended,
-  Exiting,
-}
-
-#[derive(Debug)]
-pub enum Event {
-  Windowing(WindowingEvent),
-  RendererSpawned(WindowHandle),
-  ExitRequested,
-  CriticalFailure(miette::Report),
-}
 
 pub struct App {
   event_rx:   mpsc::Receiver<Event>,
@@ -249,65 +226,5 @@ impl AppState {
       ),
       window: None,
     })
-  }
-}
-
-#[derive(Debug)]
-pub enum Command {
-  EventLoopCommand(EventLoopCommand),
-  SpawnRenderer(Arc<Window>, Arc<GpuContext>),
-}
-
-#[derive(Debug)]
-pub enum EventLoopCommand {
-  BuildWindow,
-  ExitEventLoop,
-}
-
-pub struct Executor {
-  command_rx: mpsc::Receiver<Command>,
-  event_tx:   mpsc::Sender<Event>,
-  winit_tx:   EventLoopProxy<EventLoopCommand>,
-}
-
-impl EventSender for Executor {
-  fn event_sender_handle(&self) -> &mpsc::Sender<Event> { &self.event_tx }
-}
-
-impl Executor {
-  pub fn run(&mut self) -> miette::Result<()> {
-    while let Ok(command) = self.command_rx.recv() {
-      match command {
-        Command::EventLoopCommand(event_loop_command) => {
-          tracing::debug!(
-            ?event_loop_command,
-            "forwarding command to winit event loop"
-          );
-          let _ = self.winit_tx.send_event(event_loop_command);
-        }
-        Command::SpawnRenderer(window, gpu) => {
-          tracing::debug!(
-            window.id = ?window.id(),
-            "spawning renderer for window"
-          );
-          let result =
-            Renderer::launch(gpu, window.clone(), self.event_tx.clone())
-              .context("failed to launch renderer");
-
-          match result {
-            Ok(handle) => {
-              self.event(Event::RendererSpawned(WindowHandle::new(
-                window, handle,
-              )));
-            }
-            Err(error) => {
-              self.event(Event::CriticalFailure(error));
-            }
-          }
-        }
-      }
-    }
-
-    Ok(())
   }
 }

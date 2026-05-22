@@ -1,6 +1,6 @@
 use std::sync::mpsc::{self, SendError};
 
-use crate::app::Event;
+use crate::event::Event;
 
 /// Convenience trait for items that can send events.
 pub trait EventSender {

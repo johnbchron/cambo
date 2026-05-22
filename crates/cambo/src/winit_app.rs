@@ -9,7 +9,7 @@ use winit::{
 };
 
 use crate::{
-  app::{Event, EventLoopCommand, WindowingEvent, WinitEventLoopEvent},
+  event::{Event, WindowingEvent, WinitEventLoopEvent},
   event_sender::EventSender,
 };
 
@@ -25,7 +25,7 @@ impl EventSender for WinitApp {
   fn event_sender_handle(&self) -> &mpsc::Sender<Event> { &self.event_tx }
 }
 
-impl ApplicationHandler<EventLoopCommand> for WinitApp {
+impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
     self.event(Event::Windowing(WindowingEvent::EventLoop(
       WinitEventLoopEvent::Resumed,
@@ -44,10 +44,10 @@ impl ApplicationHandler<EventLoopCommand> for WinitApp {
   fn user_event(
     &mut self,
     event_loop: &ActiveEventLoop,
-    command: EventLoopCommand,
+    command: crate::executor::EventLoopCommand,
   ) {
     match command {
-      EventLoopCommand::BuildWindow => {
+      crate::executor::EventLoopCommand::BuildWindow => {
         let attrs = Window::default_attributes()
           .with_title("cambo")
           .with_inner_size(LogicalSize::new(800, 600));
@@ -55,7 +55,7 @@ impl ApplicationHandler<EventLoopCommand> for WinitApp {
 
         self.event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
       }
-      EventLoopCommand::ExitEventLoop => {
+      crate::executor::EventLoopCommand::ExitEventLoop => {
         event_loop.exit();
       }
     }
