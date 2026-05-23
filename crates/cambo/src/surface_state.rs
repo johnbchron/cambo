@@ -5,6 +5,9 @@ use winit::window::Window;
 
 use crate::gpu_context::GpuContext;
 
+/// Manages a [`wgpu::Surface`]. This is held by the
+/// [`Renderer`](crate::renderer::Renderer) and is used to present frames to the
+/// window.
 #[derive(Debug)]
 pub struct SurfaceState {
   pub surface:        wgpu::Surface<'static>,
@@ -12,6 +15,8 @@ pub struct SurfaceState {
 }
 
 impl SurfaceState {
+  /// Constructs a surface with its config, given the [`GpuContext`] and target
+  /// [`Window`].
   pub fn new(gpu: &GpuContext, window: Arc<Window>) -> Self {
     let size = window.inner_size();
     let surface = gpu.instance().create_surface(window).unwrap();
@@ -35,6 +40,7 @@ impl SurfaceState {
     }
   }
 
+  /// Resizes and reconfigures the surface.
   pub fn resize_surface(
     &mut self,
     device: &wgpu::Device,
@@ -46,6 +52,7 @@ impl SurfaceState {
     self.reconfigure_surface(device);
   }
 
+  /// Reconfigures the surface with the current config.
   pub fn reconfigure_surface(&self, device: &wgpu::Device) {
     self.surface.configure(device, &self.surface_config);
   }

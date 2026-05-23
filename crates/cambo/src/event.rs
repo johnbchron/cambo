@@ -7,25 +7,42 @@ use winit::{
 
 use crate::window_handle::WindowHandle;
 
+/// An event relating to windows or [`winit`].
 #[derive(Debug)]
 pub enum WindowingEvent {
+  /// A [`winit`] event loop control flow event.
   EventLoop(WinitEventLoopEvent),
+  /// A [`WindowEvent`] sent by [`winit`].
   Window(WindowId, WindowEvent),
+  /// A [`DeviceEvent`] sent by [`winit`].
   Device(DeviceId, DeviceEvent),
+  /// Completion of the
+  /// [`EventLoopCommand::BuildWindow`](crate::executor::EventLoopCommand)
+  /// command.
   WindowBuilt(Arc<Window>),
 }
 
+/// A [`winit`] event loop control flow event.
 #[derive(Debug)]
 pub enum WinitEventLoopEvent {
+  /// The [`winit`] event loop was resumed.
   Resumed,
+  /// The [`winit`] event loop was suspended.
   Suspended,
+  /// The [`winit`] event loop has exited.
   Exiting,
 }
 
+/// An event.
 #[derive(Debug)]
 pub enum Event {
+  /// An event relating to windows or [`winit`].
   Windowing(WindowingEvent),
+  /// Completion of the [`Command::SpawnRenderer`](crate::executor::Command)
+  /// command.
   RendererSpawned(WindowHandle),
+  /// The user requested for the application to exit.
   ExitRequested,
+  /// Some component of the application has critically failed.
   CriticalFailure(miette::Report),
 }

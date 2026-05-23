@@ -21,6 +21,32 @@ use crate::{
   winit_app::WinitApp,
 };
 
+/// The fundamental decision-maker and state-holder.
+///
+/// All events come into [`App`]. In response to an event, the app may:
+/// - Mutate something in [`AppState`]
+/// - Send a command to the [`Executor`]
+/// - Kick a frame off to a [`WindowHandle`]
+///
+/// The [`App`] is meant to run a really tight loop because all input and events
+/// flow through it. If processing the event takes too long and the watchdog
+/// timer is tripped, a warning log will fire.
+///
+/// If the thing you want to do takes more than just a quick state mutation,
+/// turn it into a command. Package whatever state you need and send it to the
+/// [`Executor`], and then fire an event when it's done. If you need, you can
+/// receive that event and kick off another command or event. Events and
+/// commands can be chained easily. You can package a state machine that you
+/// pass back and forth if you wish.
+///
+/// ## Flows
+/// ### Starting the main window
+/// - [`WinitEventLoopEvent::Resumed`] is received, meaning the [`WinitApp`] got
+///   it's `resumed` method called.
+/// - The [`App`] sends the [`EventLoopCommand::BuildWindow`] command, which the
+///   [`Executor`] forwards to the [`WinitApp`].
+/// - The [`WinitApp`] builds the window, and sends it back as the
+///   [`WindowingEvent::WindowBuilt`].
 pub struct App {
   event_rx:   mpsc::Receiver<Event>,
   state:      AppState,
@@ -28,25 +54,32 @@ pub struct App {
 }
 
 impl App {
+  /// Builds the [`App`] and all the things it's connected to, and sets it all
+  /// in motion.
   pub fn launch(state: AppState) -> miette::Result<()> {
+    // build the channels
     let (event_tx, event_rx) = mpsc::channel();
     let (command_tx, command_rx) = mpsc::channel();
     let event_tx = EventSender::new(event_tx);
 
+    // build the winit app
     let mut winit_app = WinitApp::new(event_tx.clone());
     let window_event_loop = EventLoop::<EventLoopCommand>::with_user_event()
       .build()
       .into_diagnostic()
       .context("failed to build winit event loop")?;
     window_event_loop.set_control_flow(ControlFlow::Wait);
+    // the event loop proxy goes into the executor
     let winit_tx = window_event_loop.create_proxy();
 
+    // build the main app
     let app = App {
       event_rx,
       state,
       command_tx,
     };
 
+    // launch the app thread
     std::thread::Builder::new()
       .name("app".into())
       .spawn(move || {
@@ -56,8 +89,10 @@ impl App {
       .into_diagnostic()
       .context("failed to launch app thread")?;
 
+    // build the executor
     let executor = Executor::new(command_rx, event_tx, winit_tx);
 
+    // launch the executor thread
     std::thread::Builder::new()
       .name("executor".into())
       .spawn(move || {
@@ -67,19 +102,23 @@ impl App {
       .into_diagnostic()
       .context("failed to launch executor thread")?;
 
+    // run the winit event loop on the main thread for program lifecycle
     window_event_loop
       .run_app(&mut winit_app)
       .into_diagnostic()
       .context("failed to run winit event loop")?;
 
+    // program exits
     Ok(())
   }
 
+  /// Syntax sugar for sending a command
   fn command(&self, command: Command) {
     tracing::debug!(?command, "sending command");
     self.command_tx.send(command).unwrap();
   }
 
+  /// Run the app event loop.
   pub fn run(&mut self) -> miette::Result<()> {
     while let Ok(event) = self.event_rx.recv() {
       let start = Instant::now();

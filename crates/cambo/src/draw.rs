@@ -3,8 +3,11 @@ use vello::{
   peniko::{Brush, Fill, color::palette},
 };
 
+/// A snapshot of [`AppState`](crate::app::AppState) containing all the domain
+/// information needed to draw a frame.
 pub struct FrameInput {}
 
+/// A [`FullFrameInput`] plus the rendering info needed to fully draw a frame.
 pub struct FullFrameInput {
   input:         FrameInput,
   physical_size: (u32, u32),
@@ -29,12 +32,14 @@ impl FullFrameInput {
 }
 
 impl FullFrameInput {
+  /// Produces a drawn [`vello::Scene`].
   pub fn draw(&self) -> vello::Scene {
     let mut scene = vello::Scene::new();
     self.draw_to_scene(&mut scene);
     scene
   }
 
+  /// Draws into a [`vello::Scene`].
   pub fn draw_to_scene(&self, scene: &mut vello::Scene) {
     let w = self.physical_size.0 as f64 / self.scale_factor;
     let h = self.physical_size.1 as f64 / self.scale_factor;

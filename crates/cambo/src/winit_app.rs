@@ -14,6 +14,16 @@ use crate::{
   event_sender::EventSender,
 };
 
+/// The app passed to the [`winit`] event loop.
+///
+/// [`WinitApp`] receives commands from the [`App`](crate::app::App), forwarded
+/// by the [`Executor`](crate::executor::Executor) to the
+/// [`EventLoopProxy`](winit::event_loop::EventLoopProxy).
+///
+/// It forwards all callbacks it receives to the [`App`](crate::app::App) as
+/// events.
+///
+/// This must run on the main thread due to platform windowing restrictions.
 pub struct WinitApp {
   event_tx: EventSender,
 }
@@ -21,6 +31,8 @@ pub struct WinitApp {
 impl WinitApp {
   pub fn new(event_tx: EventSender) -> Self { Self { event_tx } }
 
+  /// Processes a command (user event) sent by the
+  /// [`EventLoopProxy`](winit::event_loop::EventLoopProxy).
   fn run_command(
     &mut self,
     event_loop: &ActiveEventLoop,

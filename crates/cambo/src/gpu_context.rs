@@ -2,6 +2,8 @@ use wgpu::{
   Backends, Device, DeviceDescriptor, Instance, Queue, RequestAdapterOptions,
 };
 
+/// Holds long-lived [`wgpu`] GPU resources used in all rendering operations. It
+/// can be constructed once and shared everywhere.
 #[derive(Debug)]
 pub struct GpuContext {
   queue:    Queue,
@@ -10,6 +12,7 @@ pub struct GpuContext {
 }
 
 impl GpuContext {
+  /// Constructs and provisions all the resources needed in [`GpuContext`].
   pub fn new() -> miette::Result<Self> {
     // no support for GL
     let instance_descriptor = wgpu::InstanceDescriptor {

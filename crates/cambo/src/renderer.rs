@@ -18,6 +18,24 @@ use crate::{
   surface_state::SurfaceState,
 };
 
+/// The [`Renderer`] lives in its own thread, and is responsible for:
+/// - Holding the surface and [`vello::Renderer`].
+/// - Receiving resizing events and reconfiguring the surface when needed.
+/// - Receiving [`FrameInput`]s, turning them into [`FullFrameInput`]s, drawing
+///   them to a [`vello::Scene`], and then rendering them to the surface.
+///
+/// Interactions with the [`Renderer`] happen through the [`RendererHandle`].
+/// There is only one [`RendererHandle`] per [`Renderer`], and it sends
+/// [`RendererCommand`]s and controls the lifecycle of the [`Renderer`]. When
+/// the [`RendererHandle`] drops, the [`Renderer`]'s thread ends and it drops.
+/// The [`RendererHandle`] can send new [`FrameInput`]s to be rendered and
+/// resizing and scale notifications.
+///
+/// To turn a [`FrameInput`] into a [`FullFrameInput`], we need the physical
+/// size of the surface we're drawing to, the scale factor we're drawing at, and
+/// the current frame count. We can keep the physical size stored in the
+/// surface, but we have to keep track of the scale factor and frame count as
+/// mutable state in the [`Renderer`].
 pub struct Renderer {
   gpu:                  Arc<GpuContext>,
   renderer:             vello::Renderer,
@@ -28,6 +46,7 @@ pub struct Renderer {
   event_tx:             EventSender,
 }
 
+/// Sent from the [`RendererHandle`] to the [`Renderer`].
 enum RendererCommand {
   FrameInput(FrameInput),
   ChangedScaleFactor(f64),
@@ -35,6 +54,8 @@ enum RendererCommand {
 }
 
 impl Renderer {
+  /// Builds the [`Renderer`], starts it in its own thread, and returns a
+  /// [`RendererHandle`].
   pub fn launch(
     gpu: Arc<GpuContext>,
     window: Arc<Window>,
@@ -81,6 +102,7 @@ impl Renderer {
     Ok(handle)
   }
 
+  /// Runs the [`Renderer`] event loop.
   fn run(&mut self) -> miette::Result<()> {
     while let Ok(command) = self.renderer_command_rx.recv() {
       match command {
@@ -170,6 +192,9 @@ impl Renderer {
   }
 }
 
+/// The handle returned by [`Renderer::launch`]. This is the only way to
+/// interact with the [`Renderer`], and dropping it will stop the [`Renderer`]
+/// after it finishes the work at hand.
 #[derive(Debug)]
 pub struct RendererHandle {
   _join_handle:        JoinHandle<()>,
@@ -177,6 +202,8 @@ pub struct RendererHandle {
 }
 
 impl RendererHandle {
+  /// Sends a [`FrameInput`] to the renderer, to be drawn and rendered to the
+  /// [`Renderer`]'s surface.
   pub fn send_frame_input(&self, input: FrameInput) {
     self
       .renderer_command_tx
@@ -184,6 +211,8 @@ impl RendererHandle {
       .unwrap();
   }
 
+  /// Notifies the [`Renderer`] of a resize event, and prompts it to reconfigure
+  /// its surface.
   pub fn send_resize(&self, new_size: PhysicalSize<u32>) {
     self
       .renderer_command_tx
@@ -191,6 +220,8 @@ impl RendererHandle {
       .unwrap();
   }
 
+  /// Notifies the [`Renderer`] of a scale factor change, prompting it to render
+  /// later frames at this scale factor.
   pub fn send_scale_factor_change(&self, new_scale_factor: f64) {
     self
       .renderer_command_tx
