@@ -20,6 +20,30 @@ pub struct WinitApp {
 
 impl WinitApp {
   pub fn new(event_tx: EventSender) -> Self { Self { event_tx } }
+
+  fn run_command(
+    &mut self,
+    event_loop: &ActiveEventLoop,
+    command: crate::executor::EventLoopCommand,
+  ) {
+    match command {
+      crate::executor::EventLoopCommand::BuildWindow => {
+        let now = Instant::now();
+        let attrs = Window::default_attributes()
+          .with_title("cambo")
+          .with_inner_size(LogicalSize::new(800, 600));
+        let window = Arc::new(event_loop.create_window(attrs).unwrap());
+        debug!("built window in {:.02}ms", now.elapsed().as_millis_f32());
+
+        self
+          .event_tx
+          .event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
+      }
+      crate::executor::EventLoopCommand::ExitEventLoop => {
+        event_loop.exit();
+      }
+    }
+  }
 }
 
 impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
@@ -47,23 +71,7 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
     event_loop: &ActiveEventLoop,
     command: crate::executor::EventLoopCommand,
   ) {
-    match command {
-      crate::executor::EventLoopCommand::BuildWindow => {
-        let now = Instant::now();
-        let attrs = Window::default_attributes()
-          .with_title("cambo")
-          .with_inner_size(LogicalSize::new(800, 600));
-        let window = Arc::new(event_loop.create_window(attrs).unwrap());
-        debug!("built window in {:.02}ms", now.elapsed().as_millis_f32());
-
-        self
-          .event_tx
-          .event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
-      }
-      crate::executor::EventLoopCommand::ExitEventLoop => {
-        event_loop.exit();
-      }
-    }
+    self.run_command(event_loop, command);
   }
 
   fn device_event(
