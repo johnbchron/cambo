@@ -74,7 +74,7 @@ impl Renderer {
       .context("failed to launch renderer thread")?;
 
     let handle = RendererHandle {
-      join_handle,
+      _join_handle: join_handle,
       renderer_command_tx,
     };
 
@@ -172,7 +172,7 @@ impl Renderer {
 
 #[derive(Debug)]
 pub struct RendererHandle {
-  join_handle:         JoinHandle<()>,
+  _join_handle:        JoinHandle<()>,
   renderer_command_tx: mpsc::Sender<RendererCommand>,
 }
 
