@@ -17,7 +17,6 @@ use crate::{
   event_sender::EventSender,
   executor::{Command, EventLoopCommand, Executor},
   gpu_context::GpuContext,
-  renderer::RendererHandle,
   window_handle::WindowHandle,
   winit_app::WinitApp,
 };
@@ -195,12 +194,12 @@ impl App {
   fn initiate_frame(&self) {
     let frame_input = FrameInput {};
 
-    let Some(renderer) = self.get_renderer() else {
+    let Some(window_handle) = self.get_window_handle() else {
       tracing::warn!("attempted to initiate a frame without a window present");
       return;
     };
 
-    renderer.send_frame_input(frame_input);
+    window_handle.initiate_frame(frame_input);
   }
 
   fn affect_resize(&self, new_size: PhysicalSize<u32>) {
@@ -209,8 +208,7 @@ impl App {
       return;
     };
 
-    window_handle.renderer().send_resize(new_size);
-    window_handle.request_redraw();
+    window_handle.handle_resize(new_size);
   }
 
   fn affect_scale_factor_change(&self, new_scale_factor: f64) {
@@ -221,18 +219,11 @@ impl App {
       return;
     };
 
-    window_handle
-      .renderer()
-      .send_scale_factor_change(new_scale_factor);
-    window_handle.request_redraw();
+    window_handle.handle_scale_factor_change(new_scale_factor);
   }
 
   fn get_window_handle(&self) -> Option<&WindowHandle> {
     self.state.window.as_ref()
-  }
-
-  fn get_renderer(&self) -> Option<&RendererHandle> {
-    self.get_window_handle().map(|wh| wh.renderer())
   }
 }
 
