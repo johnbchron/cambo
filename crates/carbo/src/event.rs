@@ -37,7 +37,7 @@ pub enum WinitEventLoopEvent {
 #[derive(Debug)]
 pub enum Event {
   /// An event relating to windows or [`winit`].
-  Windowing(WindowingEvent),
+  Windowing(Box<WindowingEvent>),
   /// Completion of the [`Command::SpawnRenderer`](crate::executor::Command)
   /// command.
   RendererSpawned(WindowHandle),

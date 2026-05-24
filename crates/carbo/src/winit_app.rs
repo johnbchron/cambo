@@ -47,9 +47,9 @@ impl WinitApp {
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
         debug!("built window in {:.02}ms", now.elapsed().as_millis_f32());
 
-        self
-          .event_tx
-          .event(Event::Windowing(WindowingEvent::WindowBuilt(window)));
+        self.event_tx.event(Event::Windowing(Box::new(
+          WindowingEvent::WindowBuilt(window),
+        )));
       }
       crate::executor::EventLoopCommand::ExitEventLoop => {
         event_loop.exit();
@@ -62,9 +62,9 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
     self
       .event_tx
-      .event(Event::Windowing(WindowingEvent::EventLoop(
+      .event(Event::Windowing(Box::new(WindowingEvent::EventLoop(
         WinitEventLoopEvent::Resumed,
-      )));
+      ))));
   }
 
   fn window_event(
@@ -75,7 +75,9 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   ) {
     self
       .event_tx
-      .event(Event::Windowing(WindowingEvent::Window(window_id, event)));
+      .event(Event::Windowing(Box::new(WindowingEvent::Window(
+        window_id, event,
+      ))));
   }
 
   fn user_event(
@@ -94,24 +96,23 @@ impl ApplicationHandler<crate::executor::EventLoopCommand> for WinitApp {
   ) {
     self
       .event_tx
-      .event(Event::Windowing(WindowingEvent::Device(device_id, event)));
+      .event(Event::Windowing(Box::new(WindowingEvent::Device(
+        device_id, event,
+      ))));
   }
 
   fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
     self
       .event_tx
-      .event(Event::Windowing(WindowingEvent::EventLoop(
+      .event(Event::Windowing(Box::new(WindowingEvent::EventLoop(
         WinitEventLoopEvent::Suspended,
-      )));
+      ))));
   }
 
   fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
     // app loop may already have exited. avoids a potential panic.
-    let _ =
-      self
-        .event_tx
-        .try_event(Event::Windowing(WindowingEvent::EventLoop(
-          WinitEventLoopEvent::Exiting,
-        )));
+    let _ = self.event_tx.try_event(Event::Windowing(Box::new(
+      WindowingEvent::EventLoop(WinitEventLoopEvent::Exiting),
+    )));
   }
 }

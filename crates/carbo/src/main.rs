@@ -1,3 +1,4 @@
+#![feature(box_patterns)]
 #![feature(duration_millis_float)]
 
 mod app;

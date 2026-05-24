@@ -124,20 +124,20 @@ impl App {
       let start = Instant::now();
       match event {
         // mainline event loop control flow
-        Event::Windowing(WindowingEvent::EventLoop(
+        Event::Windowing(box WindowingEvent::EventLoop(
           WinitEventLoopEvent::Resumed,
         )) => {
           debug!("received resumed event => building window");
           self
             .command(Command::EventLoopCommand(EventLoopCommand::BuildWindow));
         }
-        Event::Windowing(WindowingEvent::EventLoop(
+        Event::Windowing(box WindowingEvent::EventLoop(
           WinitEventLoopEvent::Suspended,
         )) => {
           debug!("received suspended event => destroying window");
           self.drop_window();
         }
-        Event::Windowing(WindowingEvent::EventLoop(
+        Event::Windowing(box WindowingEvent::EventLoop(
           WinitEventLoopEvent::Exiting,
         )) => {
           info!("winit event loop is exiting => ending app loop");
@@ -145,28 +145,28 @@ impl App {
         }
 
         // resized
-        Event::Windowing(WindowingEvent::Window(
+        Event::Windowing(box WindowingEvent::Window(
           _,
           WindowEvent::Resized(new_size),
         )) => {
           self.affect_resize(new_size);
         }
         // scale factor changed
-        Event::Windowing(WindowingEvent::Window(
+        Event::Windowing(box WindowingEvent::Window(
           _,
           WindowEvent::ScaleFactorChanged { scale_factor, .. },
         )) => {
           self.affect_scale_factor_change(scale_factor);
         }
         // redraw requested
-        Event::Windowing(WindowingEvent::Window(
+        Event::Windowing(box WindowingEvent::Window(
           _,
           WindowEvent::RedrawRequested,
         )) => {
           self.initiate_frame();
         }
         // close requested
-        Event::Windowing(WindowingEvent::Window(
+        Event::Windowing(box WindowingEvent::Window(
           _,
           WindowEvent::CloseRequested,
         )) => {
@@ -174,14 +174,14 @@ impl App {
           return Ok(());
         }
 
-        Event::Windowing(WindowingEvent::Window(_, _window_event)) => {
+        Event::Windowing(box WindowingEvent::Window(_, _window_event)) => {
           // tracing::debug!(window.id = ?w_id, "ignoring unimplemented window
           // event");
           if let Some(wh) = self.get_window_handle() {
             wh.request_redraw();
           }
         }
-        Event::Windowing(WindowingEvent::Device(_, _device_event)) => {
+        Event::Windowing(box WindowingEvent::Device(_, _device_event)) => {
           // tracing::debug!(device.id = ?d_id, "ignoring unimplemented device
           // event");
           if let Some(wh) = self.get_window_handle() {
@@ -189,7 +189,7 @@ impl App {
           }
         }
 
-        Event::Windowing(WindowingEvent::WindowBuilt(window)) => {
+        Event::Windowing(box WindowingEvent::WindowBuilt(window)) => {
           self.command(Command::SpawnRenderer(window, self.state.gpu.clone()));
         }
         Event::RendererSpawned(window_handle) => {
