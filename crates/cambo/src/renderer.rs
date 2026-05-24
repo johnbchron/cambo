@@ -43,7 +43,7 @@ pub struct Renderer {
   current_scale_factor: f64,
   current_frame_count:  u64,
   renderer_command_rx:  mpsc::Receiver<RendererCommand>,
-  event_tx:             EventSender,
+  _event_tx:            EventSender,
 }
 
 /// Sent from the [`RendererHandle`] to the [`Renderer`].
@@ -82,7 +82,7 @@ impl Renderer {
       current_scale_factor,
       current_frame_count: 0,
       renderer_command_rx,
-      event_tx,
+      _event_tx: event_tx,
     };
 
     let join_handle = std::thread::Builder::new()
