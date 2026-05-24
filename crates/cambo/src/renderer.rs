@@ -107,8 +107,8 @@ impl Renderer {
     while let Ok(command) = self.renderer_command_rx.recv() {
       match command {
         RendererCommand::FrameInput(frame_input) => {
-          let width = self.surface_state.surface_config.width;
-          let height = self.surface_state.surface_config.height;
+          let width = self.surface_state.config_width();
+          let height = self.surface_state.config_height();
 
           let full_frame_input = FullFrameInput::new(
             frame_input,
@@ -119,8 +119,7 @@ impl Renderer {
 
           let scene = full_frame_input.draw();
 
-          let surface_tex =
-            self.surface_state.surface.get_current_texture().unwrap();
+          let surface_tex = self.surface_state.get_current_texture();
 
           let target_tex =
             self.gpu.device().create_texture(&TextureDescriptor {
@@ -133,7 +132,7 @@ impl Renderer {
               mip_level_count: 1,
               sample_count:    1,
               dimension:       TextureDimension::D2,
-              format:          self.surface_state.surface_config.format,
+              format:          self.surface_state.config_format(),
               usage:           TextureUsages::STORAGE_BINDING
                 | TextureUsages::COPY_SRC,
               view_formats:    &[],

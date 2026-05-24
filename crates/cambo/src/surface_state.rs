@@ -10,8 +10,8 @@ use crate::gpu_context::GpuContext;
 /// window.
 #[derive(Debug)]
 pub struct SurfaceState {
-  pub surface:        wgpu::Surface<'static>,
-  pub surface_config: SurfaceConfiguration,
+  surface:        wgpu::Surface<'static>,
+  surface_config: SurfaceConfiguration,
 }
 
 impl SurfaceState {
@@ -55,5 +55,24 @@ impl SurfaceState {
   /// Reconfigures the surface with the current config.
   pub fn reconfigure_surface(&self, device: &wgpu::Device) {
     self.surface.configure(device, &self.surface_config);
+  }
+
+  /// The width specified in the surface config.
+  pub fn config_width(&self) -> u32 { self.surface_config.width }
+
+  /// The height specified in the surface config.
+  pub fn config_height(&self) -> u32 { self.surface_config.height }
+
+  /// The format specified in the surface config.
+  pub fn config_format(&self) -> wgpu::TextureFormat {
+    self.surface_config.format
+  }
+
+  /// Returns the next texture to be presented by the swapchain.
+  pub fn get_current_texture(&self) -> wgpu::SurfaceTexture {
+    self
+      .surface
+      .get_current_texture()
+      .expect("failed to get current surface texture")
   }
 }
