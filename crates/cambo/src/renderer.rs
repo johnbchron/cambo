@@ -28,7 +28,7 @@ pub struct Renderer {
   event_tx:             EventSender,
 }
 
-pub enum RendererCommand {
+enum RendererCommand {
   FrameInput(FrameInput),
   ChangedScaleFactor(f64),
   Resized(u32, u32),
