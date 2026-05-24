@@ -232,7 +232,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cambo"
+name = "carbo"
 version = "0.1.0"
 dependencies = [
  "miette",
