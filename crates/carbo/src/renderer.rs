@@ -149,6 +149,7 @@ impl Renderer {
     let width = self.surface_state.config_width();
     let height = self.surface_state.config_height();
 
+    // build the full frame input
     let full_frame_input = FullFrameInput::new(
       frame_input,
       (width, height),
@@ -156,22 +157,19 @@ impl Renderer {
       self.current_frame_count,
     );
 
+    // draw into the scene
     let scene = &mut self.cached_scene;
     scene.reset();
     full_frame_input.draw_to_scene(scene);
 
-    let surface_tex = self.surface_state.get_current_surface_texture();
-
-    let target_texture = self.surface_state.get_target_texture();
-    let target_view = self.surface_state.get_target_texure_view();
-
+    // render the scene to the target texture
     self
       .renderer
       .render_to_texture(
         self.gpu.device(),
         self.gpu.queue(),
         scene,
-        target_view,
+        self.surface_state.get_target_texure_view(),
         &vello::RenderParams {
           base_color: palette::css::BLACK,
           width,
@@ -181,12 +179,17 @@ impl Renderer {
       )
       .expect("vello render failed");
 
+    // prepare to blit from the target view to the surface
     let mut encoder = self
       .gpu
       .device()
       .create_command_encoder(&CommandEncoderDescriptor::default());
+
+    let surface_tex = self.surface_state.get_current_surface_texture();
+
+    // queue the blit op
     encoder.copy_texture_to_texture(
-      target_texture.as_image_copy(),
+      self.surface_state.get_target_texture().as_image_copy(),
       surface_tex.texture.as_image_copy(),
       wgpu::Extent3d {
         width,
@@ -194,10 +197,13 @@ impl Renderer {
         depth_or_array_layers: 1,
       },
     );
+    // submit all the work to the GPU
     self.gpu.queue().submit([encoder.finish()]);
 
+    // present the frame
     self.window.pre_present_notify();
     surface_tex.present();
+    let _ = self.gpu.device().poll(wgpu::PollType::Poll);
 
     self.current_frame_count += 1;
   }
