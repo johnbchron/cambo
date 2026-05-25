@@ -40,6 +40,7 @@ pub struct Renderer {
   current_scale_factor: f64,
   current_frame_count:  u64,
   renderer_command_rx:  mpsc::Receiver<RendererCommand>,
+  cached_scene:         vello::Scene,
   _event_tx:            EventSender,
 }
 
@@ -79,6 +80,7 @@ impl Renderer {
       current_scale_factor,
       current_frame_count: 0,
       renderer_command_rx,
+      cached_scene: vello::Scene::new(),
       _event_tx: event_tx,
     };
 
@@ -152,7 +154,9 @@ impl Renderer {
       self.current_frame_count,
     );
 
-    let scene = full_frame_input.draw();
+    let scene = &mut self.cached_scene;
+    scene.reset();
+    full_frame_input.draw_to_scene(scene);
 
     let surface_tex = self.surface_state.get_current_surface_texture();
 
@@ -164,7 +168,7 @@ impl Renderer {
       .render_to_texture(
         self.gpu.device(),
         self.gpu.queue(),
-        &scene,
+        scene,
         target_view,
         &vello::RenderParams {
           base_color: palette::css::BLACK,
