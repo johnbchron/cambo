@@ -1,19 +1,19 @@
 mod launch;
+mod state;
 
 use std::{
-  sync::{Arc, mpsc},
+  sync::mpsc,
   time::{Duration, Instant},
 };
 
-use miette::Context;
 use tracing::{debug, info, warn};
 use winit::{self, dpi::PhysicalSize, event::WindowEvent};
 
+pub use self::state::AppState;
 use crate::{
   draw::FrameInput,
   event::{Event, WindowingEvent, WinitEventLoopEvent},
   executor::{Command, EventLoopCommand},
-  gpu_context::GpuContext,
   window_handle::WindowHandle,
 };
 
@@ -45,7 +45,7 @@ use crate::{
 ///   [`WindowingEvent::WindowBuilt`].
 pub struct App {
   event_rx:   mpsc::Receiver<Event>,
-  state:      AppState,
+  state:      state::AppState,
   command_tx: mpsc::Sender<Command>,
 }
 
@@ -201,21 +201,5 @@ impl App {
 
   fn get_window_handle(&self) -> Option<&WindowHandle> {
     self.state.window.as_ref()
-  }
-}
-
-pub struct AppState {
-  gpu:    Arc<GpuContext>,
-  window: Option<WindowHandle>,
-}
-
-impl AppState {
-  pub fn build() -> miette::Result<Self> {
-    Ok(AppState {
-      gpu:    Arc::new(
-        GpuContext::new().context("failed to build GPU context")?,
-      ),
-      window: None,
-    })
   }
 }

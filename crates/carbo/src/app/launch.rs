@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use miette::{Context, IntoDiagnostic};
 use winit::event_loop::{ControlFlow, EventLoop};
 
-use super::{App, AppState};
+use super::App;
 use crate::{
   event_sender::EventSender,
   executor::{EventLoopCommand, Executor},
@@ -13,7 +13,7 @@ use crate::{
 impl App {
   /// Builds the [`App`] and all the things it's connected to, and sets it all
   /// in motion.
-  pub fn launch(state: AppState) -> miette::Result<()> {
+  pub fn launch(state: crate::app::AppState) -> miette::Result<()> {
     // build the channels
     let (event_tx, event_rx) = mpsc::channel();
     let (command_tx, command_rx) = mpsc::channel();
