@@ -41,6 +41,7 @@ pub struct Renderer {
   current_frame_count:  u64,
   renderer_command_rx:  mpsc::Receiver<RendererCommand>,
   cached_scene:         vello::Scene,
+  window:               Arc<Window>,
   _event_tx:            EventSender,
 }
 
@@ -62,7 +63,7 @@ impl Renderer {
     let (renderer_command_tx, renderer_command_rx) = mpsc::channel();
 
     let current_scale_factor = window.scale_factor();
-    let surface_state = SurfaceState::new(gpu.clone(), window);
+    let surface_state = SurfaceState::new(gpu.clone(), window.clone());
 
     let renderer = vello::Renderer::new(gpu.device(), vello::RendererOptions {
       use_cpu:              false,
@@ -81,6 +82,7 @@ impl Renderer {
       current_frame_count: 0,
       renderer_command_rx,
       cached_scene: vello::Scene::new(),
+      window,
       _event_tx: event_tx,
     };
 
@@ -193,6 +195,8 @@ impl Renderer {
       },
     );
     self.gpu.queue().submit([encoder.finish()]);
+
+    self.window.pre_present_notify();
     surface_tex.present();
 
     self.current_frame_count += 1;
