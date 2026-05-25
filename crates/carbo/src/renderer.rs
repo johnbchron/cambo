@@ -104,21 +104,39 @@ impl Renderer {
 
   /// Runs the [`Renderer`] event loop.
   fn run(&mut self) -> miette::Result<()> {
-    while let Ok(command) = self.renderer_command_rx.recv() {
-      match command {
-        RendererCommand::FrameInput(frame_input) => {
-          self.render_frame(frame_input);
+    // receive the first available message
+    while let Ok(first) = self.renderer_command_rx.recv() {
+      // the frame we'll draw
+      let mut pending_frame = None;
+      // the next command to execute
+      let mut command = Some(first);
+
+      // execute the command we have queued
+      while let Some(cmd) = command {
+        match cmd {
+          // don't render yet, just store the frame input
+          RendererCommand::FrameInput(frame_input) => {
+            pending_frame = Some(frame_input);
+          }
+          RendererCommand::ChangedScaleFactor(new_scale_factor) => {
+            self.current_scale_factor = new_scale_factor;
+          }
+          RendererCommand::Resized(physical_width, physical_height) => {
+            self.surface_state.resize_surface(
+              self.gpu.device(),
+              physical_width,
+              physical_height,
+            );
+          }
         }
-        RendererCommand::ChangedScaleFactor(new_scale_factor) => {
-          self.current_scale_factor = new_scale_factor;
-        }
-        RendererCommand::Resized(physical_width, physical_height) => {
-          self.surface_state.resize_surface(
-            self.gpu.device(),
-            physical_width,
-            physical_height,
-          );
-        }
+
+        // get the next command if there is one
+        command = self.renderer_command_rx.try_recv().ok();
+      }
+
+      // render when there are no more commands waiting
+      if let Some(frame_input) = pending_frame {
+        self.render_frame(frame_input);
       }
     }
 
