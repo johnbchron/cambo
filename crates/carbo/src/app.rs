@@ -122,9 +122,9 @@ impl App {
         Event::Windowing(box WindowingEvent::Device(_, _device_event)) => {
           // tracing::debug!(device.id = ?d_id, "ignoring unimplemented device
           // event");
-          if let Some(wh) = self.get_window_handle() {
-            wh.request_redraw();
-          }
+          // if let Some(wh) = self.get_window_handle() {
+          //   wh.request_redraw();
+          // }
         }
 
         Event::Windowing(box WindowingEvent::WindowBuilt(window)) => {
