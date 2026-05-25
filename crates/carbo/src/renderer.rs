@@ -5,10 +5,7 @@ use std::{
 
 use miette::{Context, IntoDiagnostic};
 use vello::peniko::color::palette;
-use wgpu::{
-  CommandEncoderDescriptor, TextureDescriptor, TextureDimension, TextureUsages,
-  TextureViewDescriptor,
-};
+use wgpu::CommandEncoderDescriptor;
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
@@ -64,7 +61,7 @@ impl Renderer {
     let (renderer_command_tx, renderer_command_rx) = mpsc::channel();
 
     let current_scale_factor = window.scale_factor();
-    let surface_state = SurfaceState::new(&gpu, window);
+    let surface_state = SurfaceState::new(gpu.clone(), window);
 
     let renderer = vello::Renderer::new(gpu.device(), vello::RendererOptions {
       use_cpu:              false,
@@ -157,23 +154,10 @@ impl Renderer {
 
     let scene = full_frame_input.draw();
 
-    let surface_tex = self.surface_state.get_current_texture();
+    let surface_tex = self.surface_state.get_current_surface_texture();
 
-    let target_tex = self.gpu.device().create_texture(&TextureDescriptor {
-      label:           Some("vello target"),
-      size:            wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-      },
-      mip_level_count: 1,
-      sample_count:    1,
-      dimension:       TextureDimension::D2,
-      format:          self.surface_state.config_format(),
-      usage:           TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
-      view_formats:    &[],
-    });
-    let target_view = target_tex.create_view(&TextureViewDescriptor::default());
+    let target_texture = self.surface_state.get_target_texture();
+    let target_view = self.surface_state.get_target_texure_view();
 
     self
       .renderer
@@ -181,7 +165,7 @@ impl Renderer {
         self.gpu.device(),
         self.gpu.queue(),
         &scene,
-        &target_view,
+        target_view,
         &vello::RenderParams {
           base_color: palette::css::BLACK,
           width,
@@ -196,7 +180,7 @@ impl Renderer {
       .device()
       .create_command_encoder(&CommandEncoderDescriptor::default());
     encoder.copy_texture_to_texture(
-      target_tex.as_image_copy(),
+      target_texture.as_image_copy(),
       surface_tex.texture.as_image_copy(),
       wgpu::Extent3d {
         width,

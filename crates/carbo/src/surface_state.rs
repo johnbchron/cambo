@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use wgpu::{SurfaceConfiguration, TextureUsages};
+use wgpu::{
+  Surface, SurfaceConfiguration, SurfaceTexture, Texture, TextureDescriptor,
+  TextureDimension, TextureFormat, TextureUsages, TextureView,
+  TextureViewDescriptor,
+};
 use winit::window::Window;
 
 use crate::gpu_context::GpuContext;
@@ -10,20 +14,23 @@ use crate::gpu_context::GpuContext;
 /// window.
 #[derive(Debug)]
 pub struct SurfaceState {
-  surface:        wgpu::Surface<'static>,
+  gpu:            Arc<GpuContext>,
+  surface:        Surface<'static>,
   surface_config: SurfaceConfiguration,
+  target_texture: Texture,
+  target_view:    TextureView,
 }
 
 impl SurfaceState {
   /// Constructs a surface with its config, given the [`GpuContext`] and target
   /// [`Window`].
-  pub fn new(gpu: &GpuContext, window: Arc<Window>) -> Self {
+  pub fn new(gpu: Arc<GpuContext>, window: Arc<Window>) -> Self {
     let size = window.inner_size();
     let surface = gpu.instance().create_surface(window).unwrap();
 
     let surface_config = SurfaceConfiguration {
       usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
-      format: wgpu::TextureFormat::Rgba8Unorm,
+      format: TextureFormat::Rgba8Unorm,
       width: size.width.max(1),
       height: size.height.max(1),
       present_mode: wgpu::PresentMode::AutoVsync,
@@ -34,9 +41,29 @@ impl SurfaceState {
 
     surface.configure(gpu.device(), &surface_config);
 
+    let target_texture = gpu.device().create_texture(&TextureDescriptor {
+      label:           Some("vello target"),
+      size:            wgpu::Extent3d {
+        width:                 surface_config.width,
+        height:                surface_config.height,
+        depth_or_array_layers: 1,
+      },
+      mip_level_count: 1,
+      sample_count:    1,
+      dimension:       TextureDimension::D2,
+      format:          surface_config.format,
+      usage:           TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
+      view_formats:    &[],
+    });
+    let target_view =
+      target_texture.create_view(&TextureViewDescriptor::default());
+
     Self {
+      gpu,
       surface,
       surface_config,
+      target_texture,
+      target_view,
     }
   }
 
@@ -53,8 +80,27 @@ impl SurfaceState {
   }
 
   /// Reconfigures the surface with the current config.
-  pub fn reconfigure_surface(&self, device: &wgpu::Device) {
+  pub fn reconfigure_surface(&mut self, device: &wgpu::Device) {
     self.surface.configure(device, &self.surface_config);
+
+    let target_texture = self.gpu.device().create_texture(&TextureDescriptor {
+      label:           Some("vello target"),
+      size:            wgpu::Extent3d {
+        width:                 self.config_width(),
+        height:                self.config_height(),
+        depth_or_array_layers: 1,
+      },
+      mip_level_count: 1,
+      sample_count:    1,
+      dimension:       TextureDimension::D2,
+      format:          self.config_format(),
+      usage:           TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
+      view_formats:    &[],
+    });
+
+    self.target_view =
+      target_texture.create_view(&TextureViewDescriptor::default());
+    self.target_texture = target_texture;
   }
 
   /// The width specified in the surface config.
@@ -64,15 +110,19 @@ impl SurfaceState {
   pub fn config_height(&self) -> u32 { self.surface_config.height }
 
   /// The format specified in the surface config.
-  pub fn config_format(&self) -> wgpu::TextureFormat {
-    self.surface_config.format
-  }
+  pub fn config_format(&self) -> TextureFormat { self.surface_config.format }
 
   /// Returns the next texture to be presented by the swapchain.
-  pub fn get_current_texture(&self) -> wgpu::SurfaceTexture {
+  pub fn get_current_surface_texture(&self) -> SurfaceTexture {
     self
       .surface
       .get_current_texture()
       .expect("failed to get current surface texture")
   }
+
+  /// Returns a [`TextureView`] into the current target [`Texture`].
+  pub fn get_target_texure_view(&self) -> &TextureView { &self.target_view }
+
+  /// Returns the current target [`Texture`].
+  pub fn get_target_texture(&self) -> &Texture { &self.target_texture }
 }
