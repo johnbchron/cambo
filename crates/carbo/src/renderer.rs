@@ -107,72 +107,7 @@ impl Renderer {
     while let Ok(command) = self.renderer_command_rx.recv() {
       match command {
         RendererCommand::FrameInput(frame_input) => {
-          let width = self.surface_state.config_width();
-          let height = self.surface_state.config_height();
-
-          let full_frame_input = FullFrameInput::new(
-            frame_input,
-            (width, height),
-            self.current_scale_factor,
-            self.current_frame_count,
-          );
-
-          let scene = full_frame_input.draw();
-
-          let surface_tex = self.surface_state.get_current_texture();
-
-          let target_tex =
-            self.gpu.device().create_texture(&TextureDescriptor {
-              label:           Some("vello target"),
-              size:            wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-              },
-              mip_level_count: 1,
-              sample_count:    1,
-              dimension:       TextureDimension::D2,
-              format:          self.surface_state.config_format(),
-              usage:           TextureUsages::STORAGE_BINDING
-                | TextureUsages::COPY_SRC,
-              view_formats:    &[],
-            });
-          let target_view =
-            target_tex.create_view(&TextureViewDescriptor::default());
-
-          self
-            .renderer
-            .render_to_texture(
-              self.gpu.device(),
-              self.gpu.queue(),
-              &scene,
-              &target_view,
-              &vello::RenderParams {
-                base_color: palette::css::BLACK,
-                width,
-                height,
-                antialiasing_method: vello::AaConfig::Area,
-              },
-            )
-            .expect("vello render failed");
-
-          let mut encoder = self
-            .gpu
-            .device()
-            .create_command_encoder(&CommandEncoderDescriptor::default());
-          encoder.copy_texture_to_texture(
-            target_tex.as_image_copy(),
-            surface_tex.texture.as_image_copy(),
-            wgpu::Extent3d {
-              width,
-              height,
-              depth_or_array_layers: 1,
-            },
-          );
-          self.gpu.queue().submit([encoder.finish()]);
-          surface_tex.present();
-
-          self.current_frame_count += 1;
+          self.render_frame(frame_input);
         }
         RendererCommand::ChangedScaleFactor(new_scale_factor) => {
           self.current_scale_factor = new_scale_factor;
@@ -188,6 +123,73 @@ impl Renderer {
     }
 
     Ok(())
+  }
+
+  /// Renders and presents a frame.
+  fn render_frame(&mut self, frame_input: FrameInput) {
+    let width = self.surface_state.config_width();
+    let height = self.surface_state.config_height();
+
+    let full_frame_input = FullFrameInput::new(
+      frame_input,
+      (width, height),
+      self.current_scale_factor,
+      self.current_frame_count,
+    );
+
+    let scene = full_frame_input.draw();
+
+    let surface_tex = self.surface_state.get_current_texture();
+
+    let target_tex = self.gpu.device().create_texture(&TextureDescriptor {
+      label:           Some("vello target"),
+      size:            wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+      },
+      mip_level_count: 1,
+      sample_count:    1,
+      dimension:       TextureDimension::D2,
+      format:          self.surface_state.config_format(),
+      usage:           TextureUsages::STORAGE_BINDING | TextureUsages::COPY_SRC,
+      view_formats:    &[],
+    });
+    let target_view = target_tex.create_view(&TextureViewDescriptor::default());
+
+    self
+      .renderer
+      .render_to_texture(
+        self.gpu.device(),
+        self.gpu.queue(),
+        &scene,
+        &target_view,
+        &vello::RenderParams {
+          base_color: palette::css::BLACK,
+          width,
+          height,
+          antialiasing_method: vello::AaConfig::Area,
+        },
+      )
+      .expect("vello render failed");
+
+    let mut encoder = self
+      .gpu
+      .device()
+      .create_command_encoder(&CommandEncoderDescriptor::default());
+    encoder.copy_texture_to_texture(
+      target_tex.as_image_copy(),
+      surface_tex.texture.as_image_copy(),
+      wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+      },
+    );
+    self.gpu.queue().submit([encoder.finish()]);
+    surface_tex.present();
+
+    self.current_frame_count += 1;
   }
 }
 
