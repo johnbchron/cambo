@@ -210,7 +210,6 @@ impl Renderer {
     // present the frame
     self.window.pre_present_notify();
     surface_tex.present();
-    let _ = self.gpu.device().poll(wgpu::PollType::Poll);
 
     self.current_frame_count += 1;
   }
