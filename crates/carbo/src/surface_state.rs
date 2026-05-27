@@ -30,6 +30,7 @@ impl SurfaceState {
 
     let surface_config = SurfaceConfiguration {
       usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
+      // required for STORAGE_ATTACHMENT on render target texture
       format: TextureFormat::Rgba8Unorm,
       width: size.width.max(1),
       height: size.height.max(1),
