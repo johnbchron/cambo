@@ -140,7 +140,7 @@ impl Renderer {
 
       // render when there are no more commands waiting
       if let Some(frame_input) = pending_frame {
-        self.render_frame(frame_input);
+        let _ = self.render_frame(frame_input);
       }
     }
 
@@ -148,7 +148,7 @@ impl Renderer {
   }
 
   /// Renders and presents a frame.
-  fn render_frame(&mut self, frame_input: FrameInput) {
+  fn render_frame(&mut self, frame_input: FrameInput) -> Result<(), SkipFrame> {
     let width = self.surface_state.config_width();
     let height = self.surface_state.config_height();
 
@@ -188,11 +188,7 @@ impl Renderer {
       .device()
       .create_command_encoder(&CommandEncoderDescriptor::default());
 
-    let Ok(surface_tex) = self.surface_state.get_current_surface_texture()
-    else {
-      tracing::error!("failed to get surface texture, bailing on frame");
-      return;
-    };
+    let surface_tex = self.surface_state.get_current_surface_texture()?;
 
     // queue the blit op
     encoder.copy_texture_to_texture(
@@ -212,6 +208,8 @@ impl Renderer {
     surface_tex.present();
 
     self.current_frame_count += 1;
+
+    Ok(())
   }
 }
 
