@@ -52,6 +52,9 @@ enum RendererCommand {
   Resized(u32, u32),
 }
 
+/// An error indicating to skip the frame.
+pub struct SkipFrame;
+
 impl Renderer {
   /// Builds the [`Renderer`], starts it in its own thread, and returns a
   /// [`RendererHandle`].
@@ -185,7 +188,11 @@ impl Renderer {
       .device()
       .create_command_encoder(&CommandEncoderDescriptor::default());
 
-    let surface_tex = self.surface_state.get_current_surface_texture();
+    let Ok(surface_tex) = self.surface_state.get_current_surface_texture()
+    else {
+      tracing::error!("failed to get surface texture, bailing on frame");
+      return;
+    };
 
     // queue the blit op
     encoder.copy_texture_to_texture(

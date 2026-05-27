@@ -7,7 +7,7 @@ use wgpu::{
 };
 use winit::window::Window;
 
-use crate::gpu_context::GpuContext;
+use crate::{gpu_context::GpuContext, renderer::SkipFrame};
 
 /// Manages a [`wgpu::Surface`]. This is held by the
 /// [`Renderer`](crate::renderer::Renderer) and is used to present frames to the
@@ -114,11 +114,16 @@ impl SurfaceState {
   pub fn config_format(&self) -> TextureFormat { self.surface_config.format }
 
   /// Returns the next texture to be presented by the swapchain.
-  pub fn get_current_surface_texture(&self) -> SurfaceTexture {
+  pub fn get_current_surface_texture(
+    &self,
+  ) -> Result<SurfaceTexture, SkipFrame> {
     self
       .surface
       .get_current_texture()
-      .expect("failed to get current surface texture")
+      .inspect_err(|e| {
+        tracing::error!("failed to get surface texture: {e}");
+      })
+      .map_err(|_| SkipFrame)
   }
 
   /// Returns a [`TextureView`] into the current target [`Texture`].
