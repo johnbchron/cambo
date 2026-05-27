@@ -127,7 +127,7 @@ impl SurfaceState {
   }
 
   /// Returns a [`TextureView`] into the current target [`Texture`].
-  pub fn get_target_texure_view(&self) -> &TextureView { &self.target_view }
+  pub fn get_target_texture_view(&self) -> &TextureView { &self.target_view }
 
   /// Returns the current target [`Texture`].
   pub fn get_target_texture(&self) -> &Texture { &self.target_texture }

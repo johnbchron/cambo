@@ -172,7 +172,7 @@ impl Renderer {
         self.gpu.device(),
         self.gpu.queue(),
         scene,
-        self.surface_state.get_target_texure_view(),
+        self.surface_state.get_target_texture_view(),
         &vello::RenderParams {
           base_color: palette::css::BLACK,
           width,
